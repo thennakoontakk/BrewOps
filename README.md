@@ -64,7 +64,7 @@ cd BrewOps
    -- The schema includes:
    -- - roles table (admin, manager, supplier, staff)
    -- - users table with foreign key to roles
-   -- - Default admin user (admin@brewops.com / admin123)
+   -- - Default admin user (admin / admin123)
    ```
 
 ### 3. Backend Setup
