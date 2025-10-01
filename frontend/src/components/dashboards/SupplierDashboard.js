@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import PaymentDropdown from '../PaymentDropdown';
+import AcceptDeclineComponent from '../AcceptDeclineComponent';
 import '../../styles/Dashboard.css';
 
 const SupplierDashboard = () => {
@@ -24,6 +25,7 @@ const SupplierDashboard = () => {
     const [deliveries, setDeliveries] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [selectedPayments, setSelectedPayments] = useState({});
 
     // Fetch deliveries assigned to this supplier
     const fetchDeliveries = async () => {
@@ -63,30 +65,40 @@ const SupplierDashboard = () => {
         }
     };
 
-    // Accept delivery with payment method
-    const acceptDelivery = async (deliveryId, paymentMethod) => {
+    // Handle delivery acceptance or decline
+    const handleDeliveryResponse = async (deliveryId, response) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/api/delivery/accept/${deliveryId}`, {
+            let endpoint, message, successMessage;
+            
+            if (response === 'declined') {
+                endpoint = `http://localhost:5000/api/delivery/${deliveryId}/decline`;
+                message = 'Delivery declined successfully!';
+            } else {
+                endpoint = `http://localhost:5000/api/delivery/${deliveryId}/accept`;
+                message = 'Delivery accepted successfully!';
+            }
+            
+            const apiResponse = await fetch(endpoint, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ payment_method: paymentMethod })
+                body: JSON.stringify({ payment_method: response !== 'declined' ? response : null })
             });
 
-            const data = await response.json();
+            const data = await apiResponse.json();
             if (data.success) {
-                // Refresh deliveries after acceptance
+                // Refresh deliveries after response
                 fetchDeliveries();
-                alert('Delivery accepted successfully!');
+                alert(message);
             } else {
-                alert(data.message || 'Failed to accept delivery');
+                alert(data.message || `Failed to ${response === 'declined' ? 'decline' : 'accept'} delivery`);
             }
         } catch (error) {
-            console.error('Error accepting delivery:', error);
-            alert('Failed to accept delivery');
+            console.error(`Error handling delivery response:`, error);
+            alert(`Failed to ${response === 'declined' ? 'decline' : 'accept'} delivery`);
         }
     };
 
@@ -181,18 +193,19 @@ const SupplierDashboard = () => {
                                     <table className="orders-table">
                                         <thead>
                                             <tr>
-                                                <th>Delivery ID</th>
+                                                <th>ID</th>
                                                 <th>Staff</th>
-                                                <th>Quantity (kg)</th>
-                                                <th>Delivery Date</th>
-                                                <th>Delivery Time</th>
-                                                <th>Payment Status</th>
+                                                <th>Quantity</th>
+                                                <th>Date</th>
+                                                <th>Time</th>
+                                                <th>Payment Method</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {deliveries.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px' }}>
+                                                    <td colSpan="7" style={{ textAlign: 'center', padding: '20px' }}>
                                                         No deliveries assigned yet
                                                     </td>
                                                 </tr>
@@ -208,7 +221,26 @@ const SupplierDashboard = () => {
                                                             <PaymentDropdown
                                                                 deliveryId={delivery.delivery_id}
                                                                 currentStatus={delivery.payment_status}
-                                                                onStatusChange={acceptDelivery}
+                                                                onPaymentSelect={(id, method) => {
+                                                                    setSelectedPayments({
+                                                                        ...selectedPayments,
+                                                                        [id]: method
+                                                                    });
+                                                                }}
+                                                                selectedPayment={selectedPayments[delivery.delivery_id]}
+                                                            />
+                                                        </td>
+                                                        <td>
+                                                            <AcceptDeclineComponent
+                                                                deliveryId={delivery.delivery_id}
+                                                                onStatusChange={(id, action) => {
+                                                                    if (action === 'accept' && !selectedPayments[id]) {
+                                                                        alert('Please select a payment method first');
+                                                                        return;
+                                                                    }
+                                                                    handleDeliveryResponse(id, action === 'accept' ? selectedPayments[id] : 'declined');
+                                                                }}
+                                                                supplierAccepted={delivery.supplier_accepted}
                                                             />
                                                         </td>
                                                     </tr>
@@ -237,12 +269,14 @@ const SupplierDashboard = () => {
                                 <table className="deliveries-table">
                                     <thead>
                                         <tr>
-                                            <th>Delivery ID</th>
+                                            <th>ID</th>
                                             <th>Staff</th>
-                                            <th>Quantity (kg)</th>
+                                            <th>Quantity</th>
                                             <th>Date</th>
                                             <th>Time</th>
                                             <th>Payment Status</th>
+                                            <th>Payment Method</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -250,14 +284,40 @@ const SupplierDashboard = () => {
                                             <tr key={delivery.delivery_id}>
                                                 <td><strong>#{delivery.delivery_id}</strong></td>
                                                 <td>{delivery.staff_name} ({delivery.staff_username})</td>
-                                                <td>{delivery.quantity_kg}</td>
+                                                <td>{delivery.quantity_kg} kg</td>
                                                 <td>{new Date(delivery.delivery_date).toLocaleDateString()}</td>
                                                 <td>{delivery.delivery_time}</td>
                                                 <td>
+                                                    <span className={`status-badge ${delivery.payment_status.toLowerCase()}`}>
+                                                        {delivery.payment_status}
+                                                    </span>
+                                                </td>
+                                                <td>
                                                     <PaymentDropdown
                                                         deliveryId={delivery.delivery_id}
-                                                        currentStatus={delivery.payment_status}
-                                                        onStatusChange={acceptDelivery}
+                                                        currentStatus={delivery.payment_method || "Not Selected"}
+                                                        onPaymentSelect={(id, method) => {
+                                                            setSelectedPayments({
+                                                                ...selectedPayments,
+                                                                [id]: method
+                                                            });
+                                                        }}
+                                                        supplierAccepted={delivery.supplier_accepted}
+                                                        disabled={delivery.supplier_accepted !== null}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <AcceptDeclineComponent
+                                                        deliveryId={delivery.delivery_id}
+                                                        currentStatus={delivery.supplier_accepted}
+                                                        onStatusChange={(id, status) => {
+                                                            const paymentMethod = selectedPayments[id];
+                                                            if (status === 'accept' && !paymentMethod) {
+                                                                alert("Please select a payment method first");
+                                                                return;
+                                                            }
+                                                            handleDeliveryResponse(id, status, paymentMethod);
+                                                        }}
                                                     />
                                                 </td>
                                             </tr>

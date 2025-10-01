@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../../styles/Dashboard.css';
 import { useAuth } from '../../context/AuthContext';
+import DashboardCharts from '../DashboardCharts';
 
 const StaffDashboard = () => {
     const { user } = useAuth();
@@ -501,11 +502,8 @@ const StaffDashboard = () => {
                         </div>
                     </div>
 
-
-
-
-
-
+                    {/* Delivery Analytics Charts */}
+                    <DashboardCharts />
 
                     {/* Recent Announcements */}
                     <div className="section">

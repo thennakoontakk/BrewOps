@@ -5,45 +5,11 @@
     z-index: 1000;
 }
 
-.dropdown-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background-color: #f8f9fa;
-    border: 2px solid #e9ecef;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 14px;
-    color: #495057;
+.payment-dropdown:hover {
+    z-index: 10000; /* Increase z-index on hover to ensure it stays on top */
 }
 
-.dropdown-trigger:hover {
-    background-color: #e9ecef;
-    border-color: #007bff;
-    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
-}
-
-.dropdown-text {
-    font-weight: 500;
-}
-
-.dropdown-arrow {
-    font-size: 12px;
-    color: #6c757d;
-    transition: transform 0.2s ease;
-}
-
-.dropdown-arrow.open {
-    transform: rotate(180deg);
-}
-
-.dropdown-trigger:hover .dropdown-arrow {
-    color: #007bff;
-}
-
-.dropdown-menu {
+.payment-options {
     position: absolute;
     top: 100%;
     left: 0;
@@ -52,31 +18,43 @@
     border: 1px solid #dee2e6;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 9999;
+    z-index: 10001; /* Higher z-index than the parent */
     margin-top: 4px;
     overflow: hidden;
-    min-width: 160px;
+    min-width: 200px;
+    padding: 8px;
 }
 
-.dropdown-option {
+.payment-option-group {
+    margin-bottom: 10px;
+}
+
+.payment-option-group h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: #495057;
+}
+
+.payment-option, .decline-option {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f8f9fa;
-}
-
-.dropdown-option:last-child {
-    border-bottom: none;
-}
-
-.dropdown-option:hover {
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 4px;
     background-color: #f8f9fa;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
 }
 
-.dropdown-option:active {
+.payment-option:hover {
     background-color: #e9ecef;
+}
+
+.payment-option:last-child {
+    margin-bottom: 10px;
 }
 
 .option-icon {
@@ -84,10 +62,39 @@
     font-size: 16px;
 }
 
-.option-text {
+.option-label {
     font-size: 14px;
     font-weight: 500;
     color: #495057;
+}
+
+.decline-option {
+    background-color: #fff5f5;
+    border: 1px solid #ffcccc;
+}
+
+.decline-option:hover {
+    background-color: #ffe6e6;
+}
+
+.accepted-status {
+    background-color: #28a745;
+    color: white;
+}
+
+.declined-status {
+    background-color: #dc3545;
+    color: white;
+}
+
+.pending-status {
+    background-color: #ffc107;
+    color: #212529;
+    cursor: pointer;
+}
+
+.pending-status:hover {
+    background-color: #e0a800;
 }
 
 .status-display {

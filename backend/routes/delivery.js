@@ -183,8 +183,8 @@ router.post('/',
 
             // Create delivery
             const [result] = await pool.execute(`
-                INSERT INTO delivery (supplier_id, staff_id, quantity_kg, delivery_date, delivery_time, payment_status) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO delivery (supplier_id, staff_id, quantity_kg, delivery_date, delivery_time, payment_status, supplier_accepted, staff_received) 
+                VALUES (?, ?, ?, ?, ?, ?, FALSE, FALSE)
             `, [supplier_id, staff_id, quantity_kg, delivery_date, delivery_time, payment_status]);
 
             res.status(201).json({
@@ -269,7 +269,7 @@ router.put('/:id',
             const [result] = await pool.execute(`
                 UPDATE delivery 
                 SET supplier_id = ?, quantity_kg = ?, delivery_date = ?, delivery_time = ?, payment_status = ?, updated_at = NOW()
-                WHERE delivery_id = ?
+                WHERE delivery_id = ? AND is_deleted = FALSE
             `, [supplier_id, quantity_kg, delivery_date, delivery_time, payment_status, id]);
 
             if (result.affectedRows === 0) {
@@ -292,6 +292,161 @@ router.put('/:id',
         }
     }
 );
+
+// Supplier accept delivery
+router.put('/:id/accept', authenticateToken, authorizeRoles('supplier'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const supplierId = req.user.id;
+        const { payment_method } = req.body;
+
+        // Verify delivery exists and belongs to this supplier
+        const [deliveries] = await pool.execute(
+            'SELECT delivery_id FROM delivery WHERE delivery_id = ? AND supplier_id = ? AND is_deleted = FALSE',
+            [id, supplierId]
+        );
+
+        if (deliveries.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found or not assigned to you'
+            });
+        }
+
+        // Update delivery to mark as accepted and update payment method
+        const [result] = await pool.execute(`
+            UPDATE delivery 
+            SET supplier_accepted = TRUE, payment_status = ?, updated_at = NOW()
+            WHERE delivery_id = ? AND is_deleted = FALSE
+        `, [payment_method, id]);
+
+        res.json({
+            success: true,
+            message: 'Delivery accepted successfully'
+        });
+    } catch (error) {
+        console.error('Accept delivery error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+// Supplier decline delivery
+router.put('/:id/decline', authenticateToken, authorizeRoles('supplier'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const supplierId = req.user.id;
+
+        // Verify delivery exists and belongs to this supplier
+        const [deliveries] = await pool.execute(
+            'SELECT delivery_id FROM delivery WHERE delivery_id = ? AND supplier_id = ? AND is_deleted = FALSE',
+            [id, supplierId]
+        );
+
+        if (deliveries.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found or not assigned to you'
+            });
+        }
+
+        // Update delivery to mark as declined
+        const [result] = await pool.execute(`
+            UPDATE delivery 
+            SET supplier_accepted = FALSE, payment_status = 'Declined', updated_at = NOW()
+            WHERE delivery_id = ? AND is_deleted = FALSE
+        `, [id]);
+
+        res.json({
+            success: true,
+            message: 'Delivery declined successfully'
+        });
+    } catch (error) {
+        console.error('Decline delivery error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+// Supplier accept delivery
+router.put('/:id/accept', authenticateToken, authorizeRoles('supplier'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const supplierId = req.user.id;
+        const { payment_method } = req.body;
+        
+        // Check if delivery exists and belongs to this supplier
+        const [deliveries] = await pool.execute(
+            'SELECT delivery_id FROM delivery WHERE delivery_id = ? AND supplier_id = ? AND is_deleted = FALSE',
+            [id, supplierId]
+        );
+
+        if (deliveries.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found or you are not authorized'
+            });
+        }
+
+        // Update supplier_accepted status and payment method
+        await pool.execute(
+            'UPDATE delivery SET supplier_accepted = TRUE, payment_method = ?, updated_at = NOW() WHERE delivery_id = ?',
+            [payment_method, id]
+        );
+
+        res.json({
+            success: true,
+            message: 'Delivery accepted successfully'
+        });
+    } catch (error) {
+        console.error('Accept delivery error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
+
+// Staff mark delivery as received
+router.put('/:id/received', authenticateToken, authorizeRoles('staff', 'admin', 'manager'), async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if delivery exists
+        const [deliveries] = await pool.execute(
+            'SELECT delivery_id FROM delivery WHERE delivery_id = ? AND is_deleted = FALSE',
+            [id]
+        );
+
+        if (deliveries.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found'
+            });
+        }
+
+        // Update staff_received status
+        await pool.execute(
+            'UPDATE delivery SET staff_received = TRUE, updated_at = NOW() WHERE delivery_id = ?',
+            [id]
+        );
+
+        res.json({
+            success: true,
+            message: 'Delivery marked as received successfully'
+        });
+    } catch (error) {
+        console.error('Mark delivery received error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+});
 
 // Delete delivery (Staff only - within 10 minutes)
 router.delete('/:id', authenticateToken, authorizeRoles('staff', 'admin', 'manager'), async (req, res) => {
@@ -346,6 +501,73 @@ router.delete('/:id', authenticateToken, authorizeRoles('staff', 'admin', 'manag
         });
     }
 });
+
+// Update payment method only (Supplier only)
+router.put('/payment/:id',
+    authenticateToken,
+    authorizeRoles('supplier'),
+    [
+        body('payment_method').isIn(['spot', 'monthly']).withMessage('Payment method must be either "spot" or "monthly"')
+    ],
+    async (req, res) => {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Validation failed',
+                    errors: errors.array()
+                });
+            }
+
+            const { id } = req.params;
+            const { payment_method } = req.body;
+            const supplierId = req.user.id;
+
+            // Check if delivery exists and belongs to the supplier
+            const [existingDeliveries] = await pool.execute(
+                'SELECT delivery_id FROM delivery WHERE delivery_id = ? AND supplier_id = ? AND is_deleted = FALSE',
+                [id, supplierId]
+            );
+
+            if (existingDeliveries.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Delivery not found or not assigned to you'
+                });
+            }
+
+            // Update only the payment method
+            const [result] = await pool.execute(`
+                UPDATE delivery 
+                SET payment_method = ?, updated_at = NOW()
+                WHERE delivery_id = ?
+            `, [payment_method, id]);
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Failed to update payment method'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Payment method updated successfully',
+                data: {
+                    delivery_id: id,
+                    payment_method: payment_method
+                }
+            });
+        } catch (error) {
+            console.error('Update payment method error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+);
 
 // Accept delivery with payment method (Supplier only)
 router.put('/accept/:id', 

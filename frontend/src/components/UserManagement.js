@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../../styles/AdminDashboard.css';
+import '../styles/AdminDashboard.css';
 
-const AdminDashboard = () => {
-    // Green theme admin dashboard component
+const UserManagement = () => {
+    // Updated component with dashboard table styles
+    // Green theme user management component
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
     if (loading) {
         return (
             <div className="dashboard-content">
-                <div className="loading">Loading admin dashboard...</div>
+                <div className="loading">Loading user management...</div>
             </div>
         );
     }
@@ -139,8 +140,8 @@ const AdminDashboard = () => {
     return (
         <div className="dashboard-content">
             <div className="dashboard-header-section">
-                <h2>Admin Dashboard</h2>
-                <p>Manage users, roles, and system settings</p>
+                <h2 style={{color: "white"}}>User Management</h2>
+                <p style={{color: "white"}}>Manage users, roles, and permissions</p>
             </div>
 
             {error && (
@@ -179,32 +180,36 @@ const AdminDashboard = () => {
                         <p>Managers</p>
                     </div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon">📦</div>
-                    <div className="stat-info">
-                        <h3>{stats.supplierCount}</h3>
-                        <p>Suppliers</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon">👷</div>
-                    <div className="stat-info">
-                        <h3>{stats.staffCount}</h3>
-                        <p>Staff Members</p>
-                    </div>
-                </div>
             </div>
 
-            {/* User Creation Form */}
-            {showCreateForm && (
-                <div className="section">
-                    <h3>Create New User</h3>
-                    <form onSubmit={handleCreateUser} className="user-form">
-                        <div className="form-row">
+            {/* User Management Section */}
+            <div className="section">
+                <div className="section-header">
+                    <h3>User Management</h3>
+                    <button 
+                        className="btn btn-primary" 
+                        onClick={() => setShowCreateForm(!showCreateForm)}
+                        style={{
+                            background: "linear-gradient(to right, #43a047, #2e7d32)",
+                            color: "white",
+                            padding: "10px 20px",
+                            borderRadius: "5px",
+                            fontWeight: "600"
+                        }}
+                    >
+                        {showCreateForm ? 'Cancel' : '+ Add New User'}
+                    </button>
+                </div>
+
+                {/* User Creation Form */}
+                {showCreateForm && (
+                    <div className="form-container">
+                        <h4>Create New User</h4>
+                        <form onSubmit={handleCreateUser}>
                             <div className="form-group">
                                 <label>Username</label>
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     value={newUser.username}
                                     onChange={(e) => setNewUser({...newUser, username: e.target.value})}
                                     required
@@ -212,84 +217,72 @@ const AdminDashboard = () => {
                             </div>
                             <div className="form-group">
                                 <label>Email</label>
-                                <input
-                                    type="email"
+                                <input 
+                                    type="email" 
                                     value={newUser.email}
                                     onChange={(e) => setNewUser({...newUser, email: e.target.value})}
                                     required
                                 />
                             </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>First Name</label>
-                                <input
-                                    type="text"
-                                    value={newUser.firstName}
-                                    onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Last Name</label>
-                                <input
-                                    type="text"
-                                    value={newUser.lastName}
-                                    onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div className="form-row">
                             <div className="form-group">
                                 <label>Password</label>
-                                <input
-                                    type="password"
+                                <input 
+                                    type="password" 
                                     value={newUser.password}
                                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                                     required
-                                    minLength="6"
                                 />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>First Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={newUser.firstName}
+                                        onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Last Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={newUser.lastName}
+                                        onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Role</label>
-                                <select
+                                <select 
                                     value={newUser.roleId}
                                     onChange={(e) => setNewUser({...newUser, roleId: e.target.value})}
                                     required
                                 >
-                                    <option value="">Select Role</option>
+                                    <option value="">Select a role</option>
                                     {roles.map(role => (
                                         <option key={role.id} value={role.id}>
-                                            {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                                            {role.name}
                                         </option>
                                     ))}
                                 </select>
                             </div>
-                        </div>
-                        <div className="form-actions">
-                            <button type="button" onClick={() => setShowCreateForm(false)} className="btn-secondary">
-                                Cancel
-                            </button>
-                            <button type="submit" className="btn-primary">
-                                Create User
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+                            <div className="form-actions">
+                                <button type="submit" className="btn btn-success">Create User</button>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary"
+                                    onClick={() => setShowCreateForm(false)}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
 
-            {/* User Management */}
-            <div className="section">
-                <div className="section-header">
-                    <h3>User Management</h3>
-                    <button 
-                        className={showCreateForm ? "btn-secondary" : "btn-primary"}
-                        onClick={() => setShowCreateForm(!showCreateForm)}
-                    >
-                        {showCreateForm ? 'Cancel' : '➕ Add New User'}
-                    </button>
-                </div>
+                {/* Users Table */}
                 <div className="table-container">
                     <table className="users-table">
                         <thead>
@@ -306,62 +299,76 @@ const AdminDashboard = () => {
                         <tbody>
                             {users.map(user => (
                                 <tr key={user.id}>
-                                    <td>{user.first_name} {user.last_name}</td>
+                                    <td>
+                                        {user.first_name} {user.last_name}
+                                    </td>
                                     <td>{user.username}</td>
                                     <td>{user.email}</td>
                                     <td>
                                         {editingUser === user.id ? (
-                                            <select
-                                                value={user.role_id}
+                                            <select 
+                                                defaultValue={user.role_id}
                                                 onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                                                onBlur={() => setEditingUser(null)}
-                                                autoFocus
+                                                style={{
+                                                    backgroundColor: 'white',
+                                                    border: '1px solid #2e8b57',
+                                                    borderRadius: '5px',
+                                                    padding: '8px 12px',
+                                                    color: '#1a5928',
+                                                    cursor: 'pointer'
+                                                }}
                                             >
                                                 {roles.map(role => (
                                                     <option key={role.id} value={role.id}>
-                                                        {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                                                        {role.name}
                                                     </option>
                                                 ))}
                                             </select>
                                         ) : (
                                             <span 
-                                                className={`role-badge role-${user.role_name}`}
+                                                className="editable"
                                                 onClick={() => setEditingUser(user.id)}
-                                                style={{ cursor: 'pointer' }}
-                                                title="Click to edit role"
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    color: '#2e7d32',
+                                                    textDecoration: 'underline',
+                                                    fontWeight: 'bold'
+                                                }}
                                             >
-                                                {user.role_name.charAt(0).toUpperCase() + user.role_name.slice(1)}
+                                                {user.role_name.toUpperCase()}
                                             </span>
                                         )}
                                     </td>
                                     <td>
-                                        <span className={`role-badge ${user.is_active ? 'role-manager' : 'role-staff'}`}>
-                                            {user.is_active ? 'Active' : 'Inactive'}
+                                        <span 
+                                            className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}
+                                            onClick={() => toggleUserStatus(user.id, user.is_active)}
+                                        >
+                                            {user.is_active ? 'ACTIVE' : 'INACTIVE'}
                                         </span>
                                     </td>
                                     <td>{new Date(user.created_at).toLocaleDateString()}</td>
                                     <td>
                                         <div className="action-buttons">
-                                            <button
-                                                onClick={() => toggleUserStatus(user.id, user.is_active)}
-                                                className={`action-btn ${user.is_active ? 'deactivate' : 'activate'}`}
-                                                title={user.is_active ? 'Deactivate User' : 'Activate User'}
-                                            >
-                                                {user.is_active ? '🚫' : '✅'}
-                                            </button>
-                                            <button
-                                                onClick={() => setEditingUser(user.id)}
-                                                className="action-btn edit"
-                                                title="Edit Role"
-                                            >
-                                                ✏️
-                                            </button>
-                                            <button
+                                            <button 
+                                                className="action-btn"
                                                 onClick={() => deleteUser(user.id)}
-                                                className="action-btn delete"
-                                                title="Delete User"
+                                                style={{
+                                                    backgroundColor: '#f44336',
+                                                    color: 'white'
+                                                }}
                                             >
-                                                🗑️
+                                                <i className="fas fa-trash-alt"></i>
+                                            </button>
+                                            <button 
+                                                className="action-btn"
+                                                onClick={() => setEditingUser(user.id)}
+                                                style={{
+                                                    backgroundColor: '#2e7d32',
+                                                    color: 'white'
+                                                }}
+                                            >
+                                                <i className="fas fa-edit"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -371,10 +378,8 @@ const AdminDashboard = () => {
                     </table>
                 </div>
             </div>
-
-
         </div>
     );
 };
 
-export default AdminDashboard;
+export default UserManagement;
